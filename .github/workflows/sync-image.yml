@@ -13,6 +13,15 @@ jobs:
       packages: write
 
     steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          repository: openclaw/openclaw
+          path: openclaw
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to ghcr.io
         uses: docker/login-action@v3
         with:
@@ -20,26 +29,13 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull latest image
-        run: |
-          for img in "ugreen/openclaw:latest" "ghcr.io/openclaw-dev/openclaw:latest" "quay.io/containerbuildstack/openclaw:latest"; do
-            echo "Trying: $img"
-            if docker pull "$img"; then
-              if [ "$img" != "ugreen/openclaw:latest" ]; then
-                docker tag "$img" ugreen/openclaw:latest
-              fi
-              echo "Pull success from $img"
-              exit 0
-            fi
-            echo "Failed: $img, trying next..."
-          done
-          exit 1
-
-      - name: Retag for ghcr.io
-        run: |
-          IMAGE_TAG="ghcr.io/${{ github.repository_owner }}/openclaw:latest"
-          docker tag ugreen/openclaw:latest $IMAGE_TAG
-          echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-
-      - name: Push to ghcr.io
-        run: docker push ${{ env.IMAGE_TAG }}
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: openclaw
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/openclaw:latest
+            ghcr.io/${{ github.repository_owner }}/openclaw:${{ github.run_number }}
+          cache-from: type=registry,ref=ghcr.io/${{ github.repository_owner }}/openclaw:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ github.repository_owner }}/openclaw:buildcache,mode=max
