@@ -3,7 +3,7 @@ name: Sync openclaw Image to ghcr.io
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 */6 * * *'  # 每6小时检查一次
+    - cron: '0 */6 * * *'
 
 jobs:
   build:
@@ -20,14 +20,33 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Pull latest image from Docker Hub
-        run: docker pull ugreen/openclaw:latest
+      - name: Pull latest image (try multiple sources)
+        run: |
+          set -e
+          echo "尝试从 Docker Hub 拉取..."
+          if docker pull ugreen/openclaw:latest; then
+            echo "Docker Hub 拉取成功"
+          else
+            echo "Docker Hub 失败，尝试镜像源..."
+            for mirror in \
+              "docker.m.daocloud.io/ugreen/openclaw:latest" \
+              "docker.elastic.co/ugreen/openclaw:latest" \
+              "ghcr.io/openclaw-dev/openclaw:latest"; do
+              echo "尝试: $mirror"
+              if docker pull "$mirror"; then
+                docker tag "$mirror" ugreen/openclaw:latest
+                echo "镜像源 $mirror 成功"
+                break
+              fi
+            done
+          fi
 
       - name: Retag for ghcr.io
         run: |
           IMAGE_TAG=$(docker inspect ugreen/openclaw:latest --format '{{index .RepoTags 0}}' | sed 's/ugreen\//ghcr.io\/${{ github.repository_owner }}\/openclaw-/')
           docker tag ugreen/openclaw:latest $IMAGE_TAG
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
+          echo "镜像标记为: $IMAGE_TAG"
 
       - name: Push to ghcr.io
         run: docker push ${{ env.IMAGE_TAG }}
