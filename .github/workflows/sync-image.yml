@@ -12,22 +12,22 @@ jobs:
       contents: read
       packages: write
 
-    步骤:
-      - 名称: 登录 ghcr.io
-        使用: docker/login-action@v3
+    steps:
+      - name: Login to ghcr.io
+        uses: docker/login-action@v3
         with:
-          注册表: ghcr.io
-          用户名: ${{ github.actor }}
-          密码: ${{ secrets.GITHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - 名称: 拉取最新镜像
-        运行: docker pull ugreen/openclaw:latest
+      - name: Pull latest image
+        run: docker pull ugreen/openclaw:latest
 
-      - 名称: 为 ghcr.io 重新打标签
-        运行: |
+      - name: Retag for ghcr.io
+        run: |
           IMAGE_TAG="ghcr.io/${{ github.repository_owner }}/openclaw:latest"
           docker tag ugreen/openclaw:latest $IMAGE_TAG
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
-      - name: 推送至 ghcr.io
+      - name: Push to ghcr.io
         run: docker push ${{ env.IMAGE_TAG }}
