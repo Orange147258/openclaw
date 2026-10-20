@@ -21,7 +21,19 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Pull latest image
-        run: docker pull ugreen/openclaw:latest
+        run: |
+          for img in "ugreen/openclaw:latest" "ghcr.io/openclaw-dev/openclaw:latest" "quay.io/containerbuildstack/openclaw:latest"; do
+            echo "Trying: $img"
+            if docker pull "$img"; then
+              if [ "$img" != "ugreen/openclaw:latest" ]; then
+                docker tag "$img" ugreen/openclaw:latest
+              fi
+              echo "Pull success from $img"
+              exit 0
+            fi
+            echo "Failed: $img, trying next..."
+          done
+          exit 1
 
       - name: Retag for ghcr.io
         run: |
