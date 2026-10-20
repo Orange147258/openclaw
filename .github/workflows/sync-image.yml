@@ -15,7 +15,7 @@ jobs:
     步骤:
       - 名称: 登录 ghcr.io
         使用: docker/login-action@v3
-        使用:
+        with:
           注册表: ghcr.io
           用户名: ${{ github.actor }}
           密码: ${{ secrets.GITHUB_TOKEN }}
@@ -28,7 +28,6 @@ jobs:
           IMAGE_TAG="ghcr.io/${{ github.repository_owner }}/openclaw:latest"
           docker tag ugreen/openclaw:latest $IMAGE_TAG
           echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
-          echo "镜像标记为: $IMAGE_TAG"
 
       - name: 推送至 ghcr.io
         run: docker push ${{ env.IMAGE_TAG }}
